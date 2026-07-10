@@ -1,0 +1,12 @@
+# generated experiment data and per-run artifacts
+data/*.npz
+# byte-compiled
+__pycache__/
+*.pyc
+# LaTeX build artifacts
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.synctex.gz
+# OS
+.DS_Store
