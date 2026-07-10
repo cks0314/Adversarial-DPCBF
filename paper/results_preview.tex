@@ -1,0 +1,29 @@
+% Standalone preview of the Results section (article class; IEEEtran not required).
+% External theorem/proposition/remark numbers are stubbed to the paper's values so
+% cross-references resolve. Compile:  pdflatex results_preview.tex  (twice)
+\documentclass[10pt,twocolumn]{article}
+\usepackage[letterpaper,margin=0.7in]{geometry}
+\usepackage{graphicx,booktabs,amsmath,amssymb}
+\usepackage[labelfont=bf]{caption}
+\extrafloats{100}
+\setcounter{totalnumber}{10}\setcounter{topnumber}{6}
+\renewcommand{\topfraction}{.95}\renewcommand{\floatpagefraction}{.85}
+\renewcommand{\textfraction}{.05}
+\makeatletter
+\def\stub#1#2{\global\@namedef{r@#1}{{#2}{1}}}
+\stub{thm:params}{2}\stub{thm:validity}{9}
+\stub{prop:soft}{11}\stub{prop:buffer}{12}\stub{prop:est}{10}
+\stub{rem:gap}{1}\stub{rem:rho}{14}\stub{rem:eps}{17}\stub{rem:buffer}{16}
+\stub{asm:robot}{2}
+\stub{sec:variants}{VII}\stub{sec:adversary}{V}\stub{sec:estimation}{VI}
+\stub{eq:bicycle}{9}
+\newcommand{\citestub}[2][\@empty]{\ifx\@empty#1[1]\else[1, #1]\fi}\let\cite\citestub
+\makeatother
+% graphics live in ../results
+\graphicspath{{../results/}}
+\title{\vspace{-2.5em}\textbf{AR-DPCBF --- Results Section (compiled preview)}}
+\date{}
+\begin{document}
+\maketitle
+\input{results_section.tex}
+\end{document}
