@@ -23,6 +23,10 @@ Functions for Nonholonomic Robots Against Maneuvering Obstacles."*
 
 Adversarial-Robust Dynamic Parabolic Control Barrier Functions (AR-DPCBF) extend Dynamic Parabolic Control Barrier Functions (DPCBFs) to dynamic environments with maneuvering obstacles. Unlike DPCBF, which assumes constant obstacle velocity, AR-DPCBF models obstacle maneuvers through a bounded-adversary framework and derives a geometry-preserving robust safety certificate with formal guarantees. The proposed approach introduces Adversarial Control Barrier Functions (A-CBFs), closed-form parameter contractions, explicit feasibility conditions, and an online obstacle capability estimator. Two soft-constrained variants further improve feasibility in cluttered environments while retaining nominal DPCBF safety. Extensive simulations demonstrate significant reductions in barrier violations and collisions compared with DPCBF, with Buffer Soft AR-DPCBF providing the best overall trade-off between safety, feasibility, and robustness.
 
+## News :newspaper:
+* **1. June 2026**: [SGAligner preprint](https://arxiv.org/abs/2304.14880v1) released on arXiv.
+* **10. April 2023**: Code released.
+
 ## 🚀 Motivation
 
 Control Barrier Functions certify safety by enforcing `ḣ ≥ −α(h)` in a QP. The Dynamic Parabolic CBF
@@ -86,19 +90,6 @@ AR-DPCBF  h* = ṽ_rel,x + λ* ṽ_rel,y² + μ*       λ* = λ − κ/(γ a_max
 the correction would enlarge the safe set and break the inclusion — robustness would then rest
 entirely on the runtime margin.
 
----
-
-## Theoretical highlights
-
-| result | statement |
-|---|---|
-| **Def. 4 — A-CBF** | `h*` is an *adversarial* CBF if for all `x ∈ C*` and **all** `(a_obs, ω_obs) ∈ F` there exists `u ∈ U` with `L_f h*(x, a_obs, ω_obs) + L_g h*(x)·u ≥ −α(h*)`. Worst-case over the obstacle, best-case over the robot. |
-| **Thm. 2 — contraction** | `λ* ≤ λ`, `μ* ≤ μ`, both monotone in `κ`; **exact recovery** `h* ≡ h` at `κ = 0`; and a **validity floor** past which the parabola would invert (`λ*, μ*` clamp at 0). |
-| **Prop. 3 — safety inheritance** | `{h* ≥ 0} ⊆ {h ≥ 0}`, hence maintaining `h* ≥ 0` implies clearance `d(t) ≥ r` for all `t`. |
-| **Thm. 9 — validity** | If the robot **out-authorises** the obstacle — `κ < c_min` and `(c_min − κ)·Λ_min ≥ ε − D_min` — then `C* = {h* ≥ 0}` is forward invariant under *every* obstacle in `F`, where `c_min = min{ a_max , v_min² β_max / ℓ_r }`. |
-| **Props. 11–12 — feasibility** | The soft variants' feasible set **equals** DPCBF's: they keep the DPCBF constraint hard and penalise `h*` in the objective only. Hard AR-DPCBF does not, and loses feasibility in clutter. |
-| **Prop. 10 — estimator** | With sub-Gaussian sensor noise and margins `(ε_a, ε_ω, ε_v)`, the online estimate satisfies `P[κ̃ ≥ κ] ≥ 1 − δ`. By monotonicity in `κ`, over-coverage yields a *more conservative, still safe* controller. |
-
 ### The four controllers
 
 | controller | hard constraint | objective penalty | feasibility |
@@ -113,7 +104,6 @@ The Huber buffer `φ` is the decisive refinement. The plain soft penalty has **z
 breached. The buffer supplies a non-zero gradient in the band `0 < h* ≤ ε`, steering the robot away
 **before** the boundary is crossed.
 
----
 
 ## Results
 
