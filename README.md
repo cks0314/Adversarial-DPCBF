@@ -148,7 +148,7 @@ breached. The buffer supplies a non-zero gradient in the band `0 < h* ≤ ε`, s
 
 <b>Silent Failure of DPCBF</b>
 
-<img src="results/readme_media/fig_sweep15_ci.pdf" width="100%">
+<img src="results/readme_media/fig_sweep15_ci.png" width="100%">
 
 </td>
 
@@ -156,7 +156,7 @@ breached. The buffer supplies a non-zero gradient in the band `0 < h* ≤ ε`, s
 
 <b>Buffer Soft AR-DPCBF</b>
 
-<img src="results/readme_media/fig_kappa10_ci.pdf" width="100%">
+<img src="results/readme_media/fig_kappa10_ci.png" width="100%">
 
 </td>
 </tr>
