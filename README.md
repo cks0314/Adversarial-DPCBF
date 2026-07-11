@@ -1,12 +1,11 @@
 <div align='center'>
-<h2 align="center"> AR-DPCBF: Adversarial-Robust Dynamic Parabolic Control Barrier Functions </h2>
+<h2 align="center"> AR-DPCBF: Adversarial-Robust Dynamic Parabolic Control Barrier Functions for Nonholonomic Robots Against Maneuvering Obstacles</h2>
 
 **Safe navigation for nonholonomic robots against *maneuvering* obstacles.**
 
-Reference implementation for the paper *"Adversarial-Robust Dynamic Parabolic Control Barrier
-Functions for Nonholonomic Robots Against Maneuvering Obstacles."*
-
-<a href="https://sayands.github.io/">Chandan Kumar Sah</a><sup>1</sup>, <a href="https://miksik.co.uk/">Bazeela Banday</a><sup>2</sup>, <a href="https://people.inf.ethz.ch/marc.pollefeys/">Jishnu Keshavan</a><sup>1,2</sup>, <a href="https://www.linkedin.com/in/d%C3%A1niel-bar%C3%A1th-3a489092/">
+<a href="mailto:chandanks@iisc.ac.in">Chandan Kumar Sah</a>,
+<a href="mailto:bazeelab@iisc.ac.in">Bazeela Banday</a>,
+<a href="mailto:kjishnu@iisc.ac.in">Jishnu Keshavan</a>
 
 
 <p align="center">
