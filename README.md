@@ -11,6 +11,7 @@
 
 [![Paper](https://img.shields.io/badge/Paper-arXiv-B31B1B?logo=arxiv)](...)
 [![Project Page](https://img.shields.io/badge/Project-Website-blue)](...)
+[![Videos](https://img.shields.io/badge/Videos-Demos-red?logo=youtube)](#videos)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
  <div align="center"></div>
 
