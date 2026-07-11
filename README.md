@@ -132,7 +132,7 @@ breached. The buffer supplies a non-zero gradient in the band `0 < h* ≤ ε`, s
 
 ## Results
 
-### 1. The silent failure is real
+### 1. DPCBF vs. AR-DPCBF variants: Under Identical Initial Conditions
 
 <p align="center"><img src="assets/fig_silent_case.png" width="100%"/></p>
 
