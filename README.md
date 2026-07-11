@@ -27,7 +27,32 @@ Adversarial-Robust Dynamic Parabolic Control Barrier Functions (AR-DPCBF) extend
 * **1. June 2026**: [SGAligner preprint](https://arxiv.org/abs/2304.14880v1) released on arXiv.
 * **10. April 2023**: Code released.
 
-## 🚀 Motivation
+<!-- TABLE OF CONTENTS -->
+<details open="open" style='padding: 10px; border-radius:5px 30px 30px 5px; border-style: solid; border-width: 1px;'>
+  <summary>Table of Contents</summary>
+  <ol>
+  <li>
+      <a href="#motivation">Motivation</a>
+    </li>
+    <li>
+      <a href="#key-contributions">Key contributions</a>
+    </li>
+    <li>
+      <a href="#method-overview">Method overview</a>
+    </li>
+    <li>
+      <a href="#installation">Installation</a>
+    </li>
+    <li>
+      <a href="#repository-structure">Repository Structure</a>
+    </li>
+    <li>
+      <a href="#citation">Citation</a>
+    </li>
+  </ol>
+</details>
+
+## Motivation
 
 Control Barrier Functions certify safety by enforcing `ḣ ≥ −α(h)` in a QP. The Dynamic Parabolic CBF
 (DPCBF) does this elegantly for dynamic obstacles: it replaces the conservative collision cone with a
@@ -267,20 +292,37 @@ Three axes, deliberately **not** conflated:
 - **collision** — `d < r`, its downstream consequence
 - **QP infeasibility** — per-cycle rate at which the safety program admits no input
 
-### Repository layout
+## Repository Structure
 
-```
-ardpcbf/                 core library
-  ardpcbf_core.py          dynamics, barriers, Lie derivatives, 2-D QP, four controllers, adversary
-  ardpcbf_run.py           episode runner
-  scenario.py              canonical scenario generator (nearest-adversary)
-  ardpcbf_estimator.py     online capability estimator (Prop. 10)
-experiments/             data runners        -> data/*.npz
-figures/                 plotters, animators -> results/*.{pdf,png,mp4}
-paper/                   Results section (LaTeX) + standalone preview
-results/                 reference figures and videos
-assets/                  GIFs and images used by this README
-docs/                    figure index, notes
+```text
+Adversarial-DPCBF/
+├── ardpcbf/                         # Core AR-DPCBF implementation
+│   ├── ardpcbf_core.py              # AR-DPCBF safety filter and QP formulation
+│   ├── ardpcbf_estimator.py         # Online obstacle capability estimation
+│   ├── ardpcbf_run.py               # Main simulation pipeline
+│   ├── scenario.py                  # Dynamic obstacle scenario generation
+│   └── _barrier_grid.py             # Barrier evaluation utilities
+│
+├── experiments/                     # Scripts to reproduce paper experiments
+│   ├── run_core_sweeps.py           # Capability and density sweeps
+│   ├── run_adversary_sweep.py       # Adversarial capability experiments
+│   ├── validity_boundary.py         # Feasibility boundary evaluation
+│   └── encirclement_probe.py        # Encirclement analysis
+│
+├── figures/                         # Figure generation and animations
+│   ├── animate_compare.py           # Comparison animations
+│   ├── animate_timelapse.py         # Time-lapse animations
+│   ├── animate_variation.py         # Dynamic adversary visualization
+│   ├── plot_core_sweeps.py          # Main experimental figures
+│   ├── plot_adversary_sweep.py
+│   ├── plot_boundary.py
+│   ├── plot_silent_case.py
+│   ├── plot_timelapse.py
+│   └── plot_variation.py
+│
+├── results/                         # Reproduced figures from the paper
+│   ├── *.pdf
+│   └── *.png
 ```
 
 All figure PDFs embed editable TrueType fonts (`pdf.fonttype = 42`) and open as **editable vector
