@@ -1,4 +1,5 @@
-# AR-DPCBF — Adversarial-Robust Dynamic Parabolic Control Barrier Functions
+<div align='center'>
+<h2 align="center"> AR-DPCBF: Adversarial-Robust Dynamic Parabolic Control Barrier Functions </h2>
 
 **Safe navigation for nonholonomic robots against *maneuvering* obstacles.**
 
@@ -6,16 +7,16 @@ Reference implementation for the paper *"Adversarial-Robust Dynamic Parabolic Co
 Functions for Nonholonomic Robots Against Maneuvering Obstacles."*
 
 <p align="center">
-  <img src="assets/demo_compare_13.gif" width="100%" alt="Four controllers on one scenario: DPCBF collides, AR-DPCBF variants reach the goal"/>
+  <img src="results/readme_media/hero_buffer.gif" width="100%" alt="Four controllers on one scenario: DPCBF collides, AR-DPCBF variants reach the goal"/>
 </p>
 
 <p align="center">
   <em>Same scenario, four controllers. DPCBF's QP reports its barrier satisfied the whole time — and the
   robot still hits an obstacle. The three AR-DPCBF variants route around the same threat and reach the goal.</em>
 </p>
-
+<div align='center'>
 ---
-
+</div>
 ## Motivation
 
 Control Barrier Functions certify safety by enforcing `ḣ ≥ −α(h)` in a QP. The Dynamic Parabolic CBF
@@ -73,7 +74,7 @@ AR-DPCBF  h* = ṽ_rel,x + λ* ṽ_rel,y² + μ*       λ* = λ − κ/(γ a_max
 ```
 
 <p align="center">
-  <img src="assets/variation.gif" width="94%" alt="Parabola contraction with kappa, relative speed and clearance"/>
+  <img src="results/readme_media/variation.gif" width="94%" alt="Parabola contraction with kappa, relative speed and clearance"/>
 </p>
 
 <p align="center">
