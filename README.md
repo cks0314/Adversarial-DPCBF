@@ -7,7 +7,7 @@
 <a href="mailto:bazeelab@iisc.ac.in">Bazeela Banday</a>,
 <a href="mailto:kjishnu@iisc.ac.in">Jishnu Keshavan</a>
 
-DACAS Lab, Indian Institute of Science, Bangalore
+<h3 align="center"> DACAS Lab, Indian Institute of Science, Bangalore</h3>
 
 [![Paper](https://img.shields.io/badge/Paper-arXiv-B31B1B?logo=arxiv)](...)
 [![Project Page](https://img.shields.io/badge/Project-Website-blue)](...)
@@ -29,8 +29,8 @@ DACAS Lab, Indian Institute of Science, Bangalore
 Adversarial-Robust Dynamic Parabolic Control Barrier Functions (AR-DPCBF) extend Dynamic Parabolic Control Barrier Functions (DPCBFs) to dynamic environments with maneuvering obstacles. Unlike DPCBF, which assumes constant obstacle velocity, AR-DPCBF models obstacle maneuvers through a bounded-adversary framework and derives a geometry-preserving robust safety certificate with formal guarantees. The proposed approach introduces Adversarial Control Barrier Functions (A-CBFs), closed-form parameter contractions, explicit feasibility conditions, and an online obstacle capability estimator. Two soft-constrained variants further improve feasibility in cluttered environments while retaining nominal DPCBF safety. Extensive simulations demonstrate significant reductions in barrier violations and collisions compared with DPCBF, with Buffer Soft AR-DPCBF providing the best overall trade-off between safety, feasibility, and robustness.
 
 ## News :newspaper:
-* **1. June 2026**: [AR-DPCBF preprint](https://arxiv.org/abs/2304.14880v1) released on arXiv.
-* **10. April 2023**: Code released.
+* **11. July 2026**: [AR-DPCBF preprint](https://arxiv.org/abs/2304.14880v1) released on arXiv.
+* **11. July 2026**: Code released.
 
 <!-- TABLE OF CONTENTS -->
 <details open="open" style='padding: 10px; border-radius:5px 30px 30px 5px; border-style: solid; border-width: 1px;'>
@@ -44,6 +44,9 @@ Adversarial-Robust Dynamic Parabolic Control Barrier Functions (AR-DPCBF) extend
     </li>
     <li>
       <a href="#method-overview">Method overview</a>
+    </li>
+    <li>
+      <a href="#results">Results</a>
     </li>
     <li>
       <a href="#installation">Installation</a>
@@ -88,7 +91,7 @@ symptom is a collision. This repository formalizes that failure mode and fixes i
 
 ## Method overview
 
-The obstacle is modelled as a bounded adversary with capability set
+The obstacle is modelled as a bounded adversary with a capability set
 `F = { |a_obs| ≤ a_obs,max , |ω_obs| ≤ ω_obs,max }`, summarised by a single scalar:
 
 ```
