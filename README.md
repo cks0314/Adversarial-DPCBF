@@ -7,13 +7,20 @@
 <a href="mailto:bazeelab@iisc.ac.in">Bazeela Banday</a>,
 <a href="mailto:kjishnu@iisc.ac.in">Jishnu Keshavan</a>
 
+DACAS Lab, Indian Institute of Science, Bangalore
+
+[![Paper](https://img.shields.io/badge/Paper-arXiv-B31B1B?logo=arxiv)](...)
+[![Project Page](https://img.shields.io/badge/Project-Website-blue)](...)
+[![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python)](...)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+ <div align="center"></div>
 
 <p align="center">
   <img src="results/readme_media/hero_buffer.gif" width="100%" alt="Four controllers on one scenario: DPCBF collides, AR-DPCBF variants reach the goal"/>
 </p>
 
 <p align="center">
-  <em>Buffer Soft AR-DPCBF navigating 16 dynamic obstacles out of which 8 are maneuvering adversaries</em>
+  <em>Buffer Soft AR-DPCBF navigating 16 dynamic obstacles, out of which 8 are maneuvering adversaries</em>
 </p>
 </div>
 
