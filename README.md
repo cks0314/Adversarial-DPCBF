@@ -6,6 +6,9 @@
 Reference implementation for the paper *"Adversarial-Robust Dynamic Parabolic Control Barrier
 Functions for Nonholonomic Robots Against Maneuvering Obstacles."*
 
+<a href="https://sayands.github.io/">Chandan Kumar Sah</a><sup>1</sup>, <a href="https://miksik.co.uk/">Bazeela Banday</a><sup>2</sup>, <a href="https://people.inf.ethz.ch/marc.pollefeys/">Jishnu Keshavan</a><sup>1,2</sup>, <a href="https://www.linkedin.com/in/d%C3%A1niel-bar%C3%A1th-3a489092/">
+
+
 <p align="center">
   <img src="results/readme_media/hero_buffer.gif" width="100%" alt="Four controllers on one scenario: DPCBF collides, AR-DPCBF variants reach the goal"/>
 </p>
@@ -14,10 +17,13 @@ Functions for Nonholonomic Robots Against Maneuvering Obstacles."*
   <em>Same scenario, four controllers. DPCBF's QP reports its barrier satisfied the whole time — and the
   robot still hits an obstacle. The three AR-DPCBF variants route around the same threat and reach the goal.</em>
 </p>
-<div align='center'>
----
 </div>
-## Motivation
+
+## 📃 Abstract
+
+Adversarial-Robust Dynamic Parabolic Control Barrier Functions (AR-DPCBF) extend Dynamic Parabolic Control Barrier Functions (DPCBFs) to dynamic environments with maneuvering obstacles. Unlike DPCBF, which assumes constant obstacle velocity, AR-DPCBF models obstacle maneuvers through a bounded-adversary framework and derives a geometry-preserving robust safety certificate with formal guarantees. The proposed approach introduces Adversarial Control Barrier Functions (A-CBFs), closed-form parameter contractions, explicit feasibility conditions, and an online obstacle capability estimator. Two soft-constrained variants further improve feasibility in cluttered environments while retaining nominal DPCBF safety. Extensive simulations demonstrate significant reductions in barrier violations and collisions compared with DPCBF, with Buffer Soft AR-DPCBF providing the best overall trade-off between safety, feasibility, and robustness.
+
+## 🚀 Motivation
 
 Control Barrier Functions certify safety by enforcing `ḣ ≥ −α(h)` in a QP. The Dynamic Parabolic CBF
 (DPCBF) does this elegantly for dynamic obstacles: it replaces the conservative collision cone with a
@@ -37,24 +43,15 @@ When `Δ(t) < 0`, the CBF condition can be satisfied by the QP **while being vio
 There is no infeasibility, no warning — the safety guarantee simply **fails silently**, and the first
 symptom is a collision. This repository formalises that failure mode and fixes it.
 
----
 
 ## Key contributions
 
-1. **The silent-failure mode**, formalised — and the **Adversarial CBF (A-CBF)** as the correct
-   validity notion when the obstacle is a bounded adversary rather than a constant-velocity mover.
-2. **A zero-sum differential game** in the LoS frame, with a reducibility lemma collapsing the full
-   state space to a tractable two-dimensional sub-game.
-3. **Closed-form adversarially-robust barrier parameters** `(λ*, μ*)` — no HJI PDE, no grid, no loss
-   of real-time performance. Per-cycle cost is identical to DPCBF.
-4. **A validity theorem** (`κ < c_min`) certifying the barrier is maintainable against *every*
-   admissible obstacle maneuver — verified empirically with **zero counterexamples**.
-5. **Two soft variants** that keep the DPCBF constraint hard and penalise the adversarial barrier in
-   the objective, recovering the feasibility that hard enforcement destroys in dense scenes.
-6. **An online capability estimator** with sub-Gaussian coverage guarantees, so `κ` need not be known
-   in advance.
+1. A **new barrier-validity notion** for safety against bounded maneuvering obstacles.
+2. A **geometry-preserving adversarial extension** of DPCBF with a closed-form safety certificate.
+3. **Provable safety guarantees** and feasibility conditions.
+4. **Two soft variants: Soft AR-DPCBF and Buffer AR-DPCBF** for better feasibility in dense scenes.
+5. **An online capability estimator** with sub-Gaussian coverage guarantees.
 
----
 
 ## Method overview
 
