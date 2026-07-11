@@ -134,15 +134,33 @@ breached. The buffer supplies a non-zero gradient in the band `0 < h* ≤ ε`, s
 
 ### 1. DPCBF vs. AR-DPCBF variants: Under Identical Initial Conditions
 
-<p align="center"><img src="assets/fig_silent_case.png" width="100%"/></p>
+<p align="center">
+  <img src="results/readme_media/demo_compare_13.gif" width="100%"/>
+</p>
 
-One deterministic scenario. DPCBF's barrier `h` stays **≥ 0 for the entire run** — its QP never
-reports a problem — yet the true clearance `d − r` goes negative (see inset). Buffer Soft AR-DPCBF,
-on the identical scenario, routes around the same adversary and reaches the goal.
+**Comparison under identical initial conditions**. All controllers are evaluated in the same dynamic obstacle scenario with identical robot and obstacle initial states. DPCBF collides because its safety certificate assumes constant obstacle velocity, whereas AR-DPCBF and its soft variants explicitly account for bounded obstacle maneuvers and safely reach the goal.
 
-### 2. It scales with the threat — and AR removes it
+### 2. Abalation Study
 
-<p align="center"><img src="assets/fig_sweep15_ci_fix.png" width="100%"/></p>
+<table align="center">
+<tr>
+<td align="center" width="50%">
+
+<b>Silent Failure of DPCBF</b>
+
+<img src="results/readme_media/fig_sweep15_ci.pdf" width="100%">
+
+</td>
+
+<td align="center" width="50%">
+
+<b>Buffer Soft AR-DPCBF</b>
+
+<img src="results/readme_media/fig_kappa10_ci.pdf" width="100%">
+
+</td>
+</tr>
+</table>
 
 Adversary-count sweep at `N = 15` (95% bootstrap CIs). DPCBF's **barrier-violation rate** climbs to
 **95%** and its collision rate to **60%**, while all AR variants stay low. The wide gap between the
