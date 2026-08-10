@@ -10,7 +10,7 @@
 <h3 align="center"> DACAS Lab, Indian Institute of Science, Bangalore</h3>
 
 [![Paper](https://img.shields.io/badge/Paper-arXiv-B31B1B?logo=arxiv)](...)
-[![Project Page](https://img.shields.io/badge/Project-Website-blue)](...)
+[![Project Page](https://img.shields.io/badge/Project-Website-blue)](https://cks0314.github.io/dummy_page/)
 [![Videos](https://img.shields.io/badge/Videos-Demos-red?logo=youtube)](#videos)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
  <div align="center"></div>
