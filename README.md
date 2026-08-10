@@ -137,39 +137,6 @@ AR-DPCBF  h* = ṽ_rel,x + λ* ṽ_rel,y² + μ*       λ* = λ − κ/(γ a_max
 
 **Comparison under identical initial conditions**. All controllers are evaluated in the same dynamic obstacle scenario with identical robot and obstacle initial states. DPCBF collides because its safety certificate assumes constant obstacle velocity, whereas AR-DPCBF and its soft variants explicitly account for bounded obstacle maneuvers and safely reach the goal.
 
-### 2. Quantitative Results
-
-<table align="center">
-<tr>
-
-<td align="center" width="50%">
-
-<b>Performance under Increasing Adversarial Density</b><br><br>
-
-<img src="results/readme_media/fig_sweep15_ci.png" width="100%"><br><br>
-
-<p align="justify">
-As more obstacles execute adversarial maneuvers, the nominal DPCBF rapidly degrades, exhibiting high barrier violation and collision rates. Buffer Soft AR-DPCBF consistently achieves the lowest violation and collision rates across all adversarial densities.
-</p>
-
-</td>
-
-<td align="center" width="50%">
-
-<b>Robustness to Increasing Obstacle Capability</b><br><br>
-
-<img src="results/readme_media/fig_kappa10_ci.png" width="100%"><br><br>
-
-<p align="justify">
-As obstacle maneuverability increases, the barrier violation rate of DPCBF rises sharply due to its constant-velocity assumption. AR-DPCBF substantially reduces violations, with Buffer Soft AR-DPCBF providing the strongest robustness across the entire capability range.
-</p>
-
-</td>
-
-</tr>
-</table>
-
-
 ## Installation
 
 ```bash
