@@ -1,267 +1,486 @@
-"""
-AR-DPCBF simulation core.
+"""AR-DPCBF simulation core.
+
 Kinematic bicycle robot vs maneuvering (unicycle) obstacles.
 Barriers and controllers follow the manuscript (subtractive/contracting convention).
-
-Conventions (verified against the manuscript):
-  Robot state  xr = [x, y, theta, v]            (kinematic bicycle, eq (9))
-  Obstacle st. xo = [x, y, theta, v]            (unicycle, eq (16))
-  Robot dyn:   xr_dot = f(xr) + g(xr) u,  u = [a, beta],  |a|<=amax, |beta|<=bmax
-               f = [v cos th, v sin th, 0, 0]
-               g = [[0,-v sin th],[0, v cos th],[0, v/lr],[1,0]]
-               (=> position has slip:  p_rob_dot = v e_rob + v beta e_rob_perp)
-  LoS barrier: h  = vtx + lam  vty^2 + mu      (DPCBF, eq (14))
-               h* = vtx + lam* vty^2 + mu*     (AR-DPCBF, contracted)
-               lam = klam d/||vrel||, mu = kmu d
-               lam* = lam - kappa/(gamma amax ||vrel||),  mu* = mu - kappa d/(gamma ||vrel||)
-               kappa = aobs_max + vobs_max*wobs_max
-  Safe set     C* = {h* >= 0}  (subset of {h>=0}: contraction => safety inheritance)
 """
 import numpy as np
 
+
 # ----------------------------- parameters -----------------------------
 class P:
-    # --- kinematic-bicycle / DPCBF Table I parameters (matched to Park et al.) ---
-    lr     = 0.20          # rear-axle distance
-    klam   = 0.144
-    kmu    = 0.505
-    gamma  = 3.0           # AR pre-emption gain (buffer reserves 1/gamma of worst manoeuvre)
-    amax   = 5.0           # robot longitudinal accel limit (also the reference accel in Dlam)
-    bmax   = 0.28          # robot slip-angle limit (beta_max)
-    vmin   = 1.0           # min speed: steering authority ~ v^2/lr vanishes at rest, so
-                           #            c_min = min(amax, vmin^2*bmax/lr) = 1.40 here
-    vmax   = 3.5
-    vdes   = 2.5           # reference cruise speed
-    alpha0 = 2.0           # class-K: alpha(h)=alpha0*h
-    r      = 1.0           # combined safety radius
-    sense  = 15.0          # sensing range: obstacles beyond this impose no constraint
-    # soft-penalty params
-    rho    = 10.0
-    eps_b  = 0.3           # buffer width (Huber)
-    # reference go-to-goal gains
-    Kv     = 1.5
-    Kth    = 2.0
 
-# ----------------------------- dynamics --------------------------------
+    # --- kinematic-bicycle / DPCBF parameters ---
+    lr = 0.20          # Distance from rear axle to the reference point [m].
+    klam = 0.144
+    kmu = 0.505
+    gamma = 3.0        # AR pre-emption gain.
+    amax = 5.0         # Robot longitudinal acceleration limit [m/s^2].
+    bmax = 0.28        # Robot slip-angle limit [rad].
+    vmin = 1.0         # Minimum simulated robot speed [m/s].
+    vmax = 3.5         # Maximum simulated robot speed [m/s].
+    vdes = 2.5         # Desired cruise speed [m/s].
+    alpha0 = 2.0       # Class-K gain: alpha(h) = alpha0 * h.
+    r = 1.0            # Combined robot/obstacle safety radius [m].
+    sense = 15.0       # Obstacles beyond this range are ignored by the QP [m].
+
+    # soft-penalty params
+    rho = 10.0
+    eps_b = 0.3        # Width of the Huber-style buffer [barrier units].
+
+    # reference go-to-goal gains
+    Kv = 1.5
+    Kth = 2.0
+
+
+# ---------------------------------------------------------------------------
+# Dynamics
+# ---------------------------------------------------------------------------
 def robot_deriv(xr, u):
+    """Kinematic-bicycle dynamics."""
     x, y, th, v = xr
     a, be = u
     c, s = np.cos(th), np.sin(th)
-    return np.array([v*c - v*be*s,
-                     v*s + v*be*c,
-                     (v/P.lr)*be,
-                     a])
+
+    # The beta-dependent terms give the position channel the lateral slip
+    # component used by the kinematic-bicycle model.
+    return np.array([
+        v * c - v * be * s,
+        v * s + v * be * c,
+        (v / P.lr) * be,
+        a,
+    ])
+
 
 def robot_step(xr, u, dt):
-    # RK4
+    """RK4 step for the robot dynamics."""
     k1 = robot_deriv(xr, u)
-    k2 = robot_deriv(xr + 0.5*dt*k1, u)
-    k3 = robot_deriv(xr + 0.5*dt*k2, u)
-    k4 = robot_deriv(xr + dt*k3, u)
-    xr = xr + (dt/6.0)*(k1+2*k2+2*k3+k4)
-    xr[3] = np.clip(xr[3], P.vmin, P.vmax)   # speed limits
+    k2 = robot_deriv(xr + 0.5 * dt * k1, u)
+    k3 = robot_deriv(xr + 0.5 * dt * k2, u)
+    k4 = robot_deriv(xr + dt * k3, u)
+
+    xr = xr + (dt / 6.0) * (k1 + 2 * k2 + 2 * k3 + k4)
+    xr[3] = np.clip(xr[3], P.vmin, P.vmax)
     return xr
 
+
 def obs_deriv(xo, aw):
+    """Unicycle obstacle dynamics."""
     x, y, th, v = xo
     a, w = aw
-    return np.array([v*np.cos(th), v*np.sin(th), w, a])
+    return np.array([
+        v * np.cos(th),
+        v * np.sin(th),
+        w,
+        a,
+    ])
+
 
 def obs_step(xo, aw, dt):
+    """RK4 step for the obstacle dynamics."""
     k1 = obs_deriv(xo, aw)
-    k2 = obs_deriv(xo + 0.5*dt*k1, aw)
-    k3 = obs_deriv(xo + 0.5*dt*k2, aw)
-    k4 = obs_deriv(xo + dt*k3, aw)
-    xo = xo + (dt/6.0)*(k1+2*k2+2*k3+k4)
+    k2 = obs_deriv(xo + 0.5 * dt * k1, aw)
+    k3 = obs_deriv(xo + 0.5 * dt * k2, aw)
+    k4 = obs_deriv(xo + dt * k3, aw)
+
+    xo = xo + (dt / 6.0) * (k1 + 2 * k2 + 2 * k3 + k4)
     xo[3] = max(xo[3], 0.0)
     return xo
 
+
 # ----------------------------- barrier ---------------------------------
 def barrier(xr, xo, kappa, adversarial):
-    """Return h (or h*) value. adversarial=False -> DPCBF h; True -> AR-DPCBF h*."""
+    """Return h (or h*) for the current robot-obstacle pair."""
+    # Relative position and LoS frame.
     p_rel = xo[:2] - xr[:2]
-    nP = np.hypot(p_rel[0], p_rel[1])
-    nP = max(nP, 1e-6)
-    vrob = xr[3]*np.array([np.cos(xr[2]), np.sin(xr[2])])      # no-slip robot velocity
-    vobs = xo[3]*np.array([np.cos(xo[2]), np.sin(xo[2])])
-    vrel = vobs - vrob
-    xhat = p_rel/nP
+    nP = max(np.hypot(p_rel[0], p_rel[1]), 1e-6)
+    xhat = p_rel / nP
     yhat = np.array([-xhat[1], xhat[0]])
+
+    # DPCBF uses the no-slip robot velocity.
+    vrob = xr[3] * np.array([np.cos(xr[2]), np.sin(xr[2])])
+    vobs = xo[3] * np.array([np.cos(xo[2]), np.sin(xo[2])])
+    vrel = vobs - vrob
+
+    # Relative velocity components in the line-of-sight frame.
     vtx = vrel @ xhat
     vty = vrel @ yhat
-    d  = np.sqrt(max(nP*nP - P.r*P.r, 1e-9))
-    nv = max(np.hypot(vrel[0], vrel[1]), 0.2)   # engagement floor on ||v_rel||
-    lam = P.klam*d/nv
-    mu  = P.kmu*d
+
+    # Tangency distance associated with the combined safety radius.
+    d = np.sqrt(max(nP * nP - P.r * P.r, 1e-9))
+
+    # Engagement floor on ||v_rel||.
+    nv = max(np.hypot(vrel[0], vrel[1]), 0.2)
+
+    lam = P.klam * d / nv
+    mu = P.kmu * d
+
     if adversarial and kappa > 0.0:
-        # subtract the manoeuvre buffer; clamp at 0 (Thm 2(iii): the parabola
-        # cannot invert -- past the validity floor we use the most-contracted
-        # certificate of this form, lam*=mu*=0)
-        lam = max(lam - kappa/(P.gamma*P.amax*nv), 0.0)
-        mu  = max(mu  - kappa*d/(P.gamma*nv),       0.0)
-    return vtx + lam*vty*vty + mu
+        # Subtract the manoeuvre buffer and clamp at zero.
+        lam = max(lam - kappa / (P.gamma * P.amax * nv), 0.0)
+        mu = max(mu - kappa * d / (P.gamma * nv), 0.0)
+
+    return vtx + lam * vty * vty + mu
+
 
 def _part(xr, xo, kappa, adv, which, eps=1e-6):
-    """Central-difference partials of the barrier. which: list of (frame,i)
-    with frame in {'r','o'} and i the state index. Returns dict."""
+    """Central-difference partials of the barrier."""
     out = {}
     for fr, i in which:
         if fr == 'r':
-            dr = np.zeros(4); dr[i] = eps
-            out[(fr,i)] = (barrier(xr+dr,xo,kappa,adv)-barrier(xr-dr,xo,kappa,adv))/(2*eps)
+            dr = np.zeros(4)
+            dr[i] = eps
+            out[(fr, i)] = (
+                barrier(xr + dr, xo, kappa, adv)
+                - barrier(xr - dr, xo, kappa, adv)
+            ) / (2 * eps)
         else:
-            do = np.zeros(4); do[i] = eps
-            out[(fr,i)] = (barrier(xr,xo+do,kappa,adv)-barrier(xr,xo-do,kappa,adv))/(2*eps)
+            do = np.zeros(4)
+            do[i] = eps
+            out[(fr, i)] = (
+                barrier(xr, xo + do, kappa, adv)
+                - barrier(xr, xo - do, kappa, adv)
+            ) / (2 * eps)
     return out
 
+
 def lie(xr, xo, kappa, adversarial):
-    """(Lf, Lg[2], h) for the CBF-QP, constant-velocity obstacle. 12 barrier evals."""
-    x, y, th, v = xr
+    """(Lf, Lg[2], h) for the CBF-QP."""
+    _, _, th, v = xr
     c, s = np.cos(th), np.sin(th)
-    g = _part(xr, xo, kappa, adversarial,
-              [('r',0),('r',1),('r',2),('r',3),('o',0),('o',1)])
-    Lf = g[('r',0)]*(v*c) + g[('r',1)]*(v*s) \
-         + g[('o',0)]*(xo[3]*np.cos(xo[2])) + g[('o',1)]*(xo[3]*np.sin(xo[2]))
-    Lg_a    = g[('r',3)]
-    Lg_beta = g[('r',0)]*(-v*s) + g[('r',1)]*(v*c) + g[('r',2)]*(v/P.lr)
+
+    # Only the needed state partials.
+    g = _part(
+        xr, xo, kappa, adversarial,
+        [('r', 0), ('r', 1), ('r', 2), ('r', 3), ('o', 0), ('o', 1)],
+    )
+
+    # Translational drift terms.
+    Lf = (
+        g[('r', 0)] * (v * c)
+        + g[('r', 1)] * (v * s)
+        + g[('o', 0)] * (xo[3] * np.cos(xo[2]))
+        + g[('o', 1)] * (xo[3] * np.sin(xo[2]))
+    )
+
+    # Control channels corresponding to acceleration and beta.
+    Lg_a = g[('r', 3)]
+    Lg_beta = (
+        g[('r', 0)] * (-v * s)
+        + g[('r', 1)] * (v * c)
+        + g[('r', 2)] * (v / P.lr)
+    )
+
     h = barrier(xr, xo, kappa, adversarial)
     return Lf, np.array([Lg_a, Lg_beta]), h, None, None
 
+
 def lie_Lg(xr, xo, kappa, adversarial):
-    """Just Lg[2] and h for the penalty term (8 barrier evals)."""
-    x, y, th, v = xr; c, s = np.cos(th), np.sin(th)
-    g = _part(xr, xo, kappa, adversarial, [('r',0),('r',1),('r',2),('r',3)])
-    Lg_a    = g[('r',3)]
-    Lg_beta = g[('r',0)]*(-v*s) + g[('r',1)]*(v*c) + g[('r',2)]*(v/P.lr)
+    """Return only the control Lie derivatives and barrier value.
+
+    This reduced derivative calculation is used by the soft and buffer
+    penalty terms, where the drift term is not required.
+    """
+    _, _, th, v = xr
+    c, s = np.cos(th), np.sin(th)
+
+    g = _part(
+        xr, xo, kappa, adversarial,
+        [('r', 0), ('r', 1), ('r', 2), ('r', 3)],
+    )
+
+    Lg_a = g[('r', 3)]
+    Lg_beta = (
+        g[('r', 0)] * (-v * s)
+        + g[('r', 1)] * (v * c)
+        + g[('r', 2)] * (v / P.lr)
+    )
+
     return np.array([Lg_a, Lg_beta]), barrier(xr, xo, kappa, adversarial)
 
-def grad_barrier(xr, xo, kappa, adversarial, eps=1e-6):
-    """Full (g_r[4], g_o[4]) -- used only by sanity tests."""
-    g = _part(xr, xo, kappa, adversarial, [(f,i) for f in 'ro' for i in range(4)], eps)
-    return (np.array([g[('r',i)] for i in range(4)]),
-            np.array([g[('o',i)] for i in range(4)]))
 
-# ----------------------------- 2D projection QP ------------------------
-def qp_project(uref, A, b, lo, hi):
+def grad_barrier(xr, xo, kappa, adversarial, eps=1e-6):
+    """Return numerical gradients with respect to the full robot/obstacle states.
+
+    This helper is primarily intended for derivative sanity checks rather
+    than the main control loop.
     """
-    min ||u-uref||^2  s.t.  A u >= b  (rows),  lo<=u<=hi.
-    2D exact projection by KKT/vertex enumeration. Returns (u, feasible).
+    g = _part(
+        xr, xo, kappa, adversarial,
+        [(f, i) for f in 'ro' for i in range(4)],
+        eps,
+    )
+    return (
+        np.array([g[('r', i)] for i in range(4)]),
+        np.array([g[('o', i)] for i in range(4)]),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Two-dimensional QP projection
+# ---------------------------------------------------------------------------
+def qp_project(uref, A, b, lo, hi):
+    """Project a reference control onto the feasible control set.
+
+    Solves
+
+        min ||u - uref||^2
+        subject to A u >= b and lo <= u <= hi.
+
+    Because the control has only two components, the projection can be found
+    by enumerating projections onto individual half-planes and intersections
+    of pairs of constraint boundaries.  This avoids introducing a separate
+    numerical QP dependency.
+
+    Returns
+    -------
+    u : ndarray, shape (2,)
+        Projected control.
+    feasible : bool
+        ``True`` if a point satisfying every constraint was found.  If the
+        intersection is infeasible, the function returns the box-clamped
+        reference control and sets this flag to ``False``.
     """
     uref = np.asarray(uref, float)
-    # assemble all halfplane constraints A_all u >= b_all  (incl. box)
-    Aall = [np.array([1.0,0.0]), np.array([-1.0,0.0]),
-            np.array([0.0,1.0]), np.array([0.0,-1.0])]
+
+    # Convert the input box into four half-plane constraints so every
+    # feasibility test uses the same representation.
+    Aall = [
+        np.array([1.0, 0.0]),
+        np.array([-1.0, 0.0]),
+        np.array([0.0, 1.0]),
+        np.array([0.0, -1.0]),
+    ]
     ball = [lo[0], -hi[0], lo[1], -hi[1]]
+
     for i in range(len(b)):
-        Aall.append(np.asarray(A[i], float)); ball.append(float(b[i]))
-    Aall = np.array(Aall); ball = np.array(ball)
+        Aall.append(np.asarray(A[i], float))
+        ball.append(float(b[i]))
+
+    Aall = np.array(Aall)
+    ball = np.array(ball)
     tol = 1e-7
+
     def feasible(u):
+        """Check all half-plane constraints with a small numerical tolerance."""
         return np.all(Aall @ u >= ball - tol)
-    cands = []
+
+    # The unconstrained reference is already the minimum-distance solution.
     if feasible(uref):
         return uref.copy(), True
-    # single-constraint projections
+
+    candidates = []
+
+    # Project the reference onto each individual constraint boundary.
     for i in range(len(ball)):
-        ai = Aall[i]; nrm2 = ai@ai
-        if nrm2 < 1e-12: continue
-        u = uref + (ball[i] - ai@uref)/nrm2 * ai
-        cands.append(u)
-    # pairwise vertices
+        ai = Aall[i]
+        nrm2 = ai @ ai
+        if nrm2 < 1e-12:
+            continue
+        u = uref + (ball[i] - ai @ uref) / nrm2 * ai
+        candidates.append(u)
+
+    # In two dimensions, an optimum can also occur at the intersection of
+    # two active constraint boundaries.
     n = len(ball)
     for i in range(n):
-        for j in range(i+1, n):
+        for j in range(i + 1, n):
             M = np.array([Aall[i], Aall[j]])
             det = np.linalg.det(M)
-            if abs(det) < 1e-9: continue
+            if abs(det) < 1e-9:
+                continue
             u = np.linalg.solve(M, np.array([ball[i], ball[j]]))
-            cands.append(u)
-    best=None; bestd=np.inf
-    for u in cands:
+            candidates.append(u)
+
+    best = None
+    bestd = np.inf
+    for u in candidates:
         if feasible(u):
-            dd = np.sum((u-uref)**2)
-            if dd < bestd: bestd=dd; best=u
+            dd = np.sum((u - uref) ** 2)
+            if dd < bestd:
+                bestd = dd
+                best = u
+
     if best is None:
-        # infeasible: return the least-infeasible box point near uref (clamp), flag False
-        u = np.array([np.clip(uref[0], lo[0], hi[0]), np.clip(uref[1], lo[1], hi[1])])
+        # No feasible point exists.  Keep the simulation running with the
+        # closest point in the actuator box and explicitly report infeasibility.
+        u = np.array([
+            np.clip(uref[0], lo[0], hi[0]),
+            np.clip(uref[1], lo[1], hi[1]),
+        ])
         return u, False
+
     return best, True
 
-# ----------------------------- controllers -----------------------------
+
+# ---------------------------------------------------------------------------
+# Nominal and AR-DPCBF controllers
+# ---------------------------------------------------------------------------
 def reference_control(xr, goal):
-    """Go-to-goal reference (a, beta)."""
-    dx = goal[0]-xr[0]; dy = goal[1]-xr[1]
+    """Compute the nominal go-to-goal reference control ``[a, beta]``."""
+    dx = goal[0] - xr[0]
+    dy = goal[1] - xr[1]
     th_goal = np.arctan2(dy, dx)
-    err = np.arctan2(np.sin(th_goal-xr[2]), np.cos(th_goal-xr[2]))
-    a   = P.Kv*(P.vdes - xr[3])
-    be  = P.Kth*err
-    return np.array([np.clip(a, -P.amax, P.amax), np.clip(be, -P.bmax, P.bmax)])
+
+    # Wrap heading error to [-pi, pi] before applying the proportional gain.
+    err = np.arctan2(
+        np.sin(th_goal - xr[2]),
+        np.cos(th_goal - xr[2]),
+    )
+
+    a = P.Kv * (P.vdes - xr[3])
+    be = P.Kth * err
+
+    return np.array([
+        np.clip(a, -P.amax, P.amax),
+        np.clip(be, -P.bmax, P.bmax),
+    ])
+
 
 def dphi_soft(s):
-    # phi=max(0,-s)^2 ; dphi/ds = 2 min(0,s)
-    return 2.0*min(0.0, s)
+    """Derivative of the quadratic soft penalty ``max(0, -s)^2``."""
+    return 2.0 * min(0.0, s)
+
 
 def dphi_buffer(s, eps_b):
-    # Huber buffer (eq 70)
-    if s > eps_b:   return 0.0
-    if s > 0.0:     return -(eps_b - s)/eps_b
+    """Derivative of the Huber-style AR-DPCBF buffer penalty.
+
+    The derivative is zero outside the positive buffer, decreases linearly
+    inside the buffer, and saturates at -1 for a violated barrier.
+    """
+    if s > eps_b:
+        return 0.0
+    if s > 0.0:
+        return -(eps_b - s) / eps_b
     return -1.0
 
+
 def compute_control(method, xr, obs_list, goal, kappa):
-    """
-    method in {'dpcbf','hard','soft','buffer'}.
-    Returns (u, feasible_flag). For 'hard', feasible_flag=False means the AR-QP
-    was infeasible and the controller fell back to the DPCBF QP.
+    """Compute one control action for a selected AR-DPCBF controller.
+
+    Parameters
+    ----------
+    method : {'dpcbf', 'hard', 'soft', 'buffer'}
+        Controller variant:
+          * ``dpcbf``: nominal DPCBF is enforced as a hard constraint.
+          * ``hard``: contracted AR-DPCBF is enforced as a hard constraint.
+          * ``soft``: nominal DPCBF is hard; AR-DPCBF is a quadratic penalty.
+          * ``buffer``: nominal DPCBF is hard; AR-DPCBF uses the Huber buffer.
+    xr : array-like
+        Current robot state.
+    obs_list : sequence
+        Current obstacle states.
+    goal : array-like, shape (2,)
+        Position of the goal.
+    kappa : float
+        Obstacle maneuver capability used for AR-DPCBF contraction.
+
+    Returns
+    -------
+    u : ndarray, shape (2,)
+        Control ``[a, beta]``.
+    feasible : bool
+        Feasibility flag returned by the underlying projection.  For ``hard``,
+        ``False`` specifically indicates that the AR-DPCBF QP was infeasible
+        and the controller fell back to the nominal DPCBF QP.
     """
     uref = reference_control(xr, goal)
-    lo = np.array([-P.amax, -P.bmax]); hi = np.array([P.amax, P.bmax])
-    near = [xo for xo in obs_list
-            if np.hypot(xo[0]-xr[0], xo[1]-xr[1]) <= P.sense]
+    lo = np.array([-P.amax, -P.bmax])
+    hi = np.array([P.amax, P.bmax])
+
+    # Only sensed obstacles contribute constraints or penalties.
+    near = [
+        xo for xo in obs_list
+        if np.hypot(xo[0] - xr[0], xo[1] - xr[1]) <= P.sense
+    ]
 
     def dpcbf_constraints():
-        A=[]; b=[]
+        """Build nominal DPCBF inequalities in the form A u >= b."""
+        A = []
+        b = []
         for xo in near:
-            Lf, Lg, h, _, _ = lie(xr, xo, kappa, adversarial=False)
-            A.append(Lg); b.append(-P.alpha0*h - Lf)
+            Lf, Lg, h, _, _ = lie(
+                xr, xo, kappa, adversarial=False
+            )
+            # Lf + Lg u + alpha(h) >= 0.
+            A.append(Lg)
+            b.append(-P.alpha0 * h - Lf)
         return A, b
 
     if method == 'dpcbf':
         A, b = dpcbf_constraints()
-        u, feas = qp_project(uref, A, b, lo, hi)
-        return u, feas
+        return qp_project(uref, A, b, lo, hi)
 
     if method == 'hard':
-        A=[]; b=[]
+        A = []
+        b = []
         for xo in near:
-            Lf, Lg, h, _, _ = lie(xr, xo, kappa, adversarial=True)
-            A.append(Lg); b.append(-P.alpha0*h - Lf)
+            Lf, Lg, h, _, _ = lie(
+                xr, xo, kappa, adversarial=True
+            )
+            # The contracted barrier replaces h by h* in the hard CBF constraint.
+            A.append(Lg)
+            b.append(-P.alpha0 * h - Lf)
+
         u, feas = qp_project(uref, A, b, lo, hi)
-        if not feas:                      # AR-QP infeasible -> fall back to DPCBF
+
+        if not feas:
+            # Preserve the nominal DPCBF fallback used by the experiments.
             Ad, bd = dpcbf_constraints()
             u, _ = qp_project(uref, Ad, bd, lo, hi)
-            return u, False               # flag the infeasibility event
+            return u, False
+
         return u, True
 
-    # soft / buffer: HARD constraint is DPCBF; adversarial barrier only penalised
+    # For soft and buffer variants, the nominal DPCBF remains the hard
+    # constraint.  The contracted AR-DPCBF contributes only to the objective.
     A, b = dpcbf_constraints()
     qpen = np.zeros(2)
-    for xo in near:
-        Lgs, hs = lie_Lg(xr, xo, kappa, adversarial=True)
-        d = dphi_soft(hs) if method == 'soft' else dphi_buffer(hs, P.eps_b)
-        qpen += P.rho * d * Lgs
-    uref_eff = uref - 0.5*qpen            # min ||u-uref||^2 + qpen^T u  (eq 73)
-    u, feas = qp_project(uref_eff, A, b, lo, hi)
-    return u, feas
 
-# ----------------------------- adversary -------------------------------
+    for xo in near:
+        Lgs, hs = lie_Lg(
+            xr, xo, kappa, adversarial=True
+        )
+        d = (
+            dphi_soft(hs)
+            if method == 'soft'
+            else dphi_buffer(hs, P.eps_b)
+        )
+        qpen += P.rho * d * Lgs
+
+    # Completing the square in
+    # ||u-uref||^2 + qpen^T u gives the shifted reference below.
+    uref_eff = uref - 0.5 * qpen
+    return qp_project(uref_eff, A, b, lo, hi)
+
+
+# ---------------------------------------------------------------------------
+# Worst-case obstacle maneuver
+# ---------------------------------------------------------------------------
 def adversary_input(xr, xo, kappa, aobs_max, wobs_max):
+    """Return the worst-case obstacle maneuver for the current barrier.
+
+    The obstacle chooses acceleration and angular rate from the admissible
+    box to minimize the instantaneous DPCBF barrier rate.  Since the barrier
+    rate is affine in these two obstacle inputs, the minimizer is attained at
+    a box corner.  The signs are determined from the barrier sensitivities
+    with respect to obstacle speed and heading.
     """
-    Worst-case maneuver in F minimising the robot's DPCBF barrier rate hdot.
-    hdot depends on (a_obs,w_obs) via dh/dv_o (->a_obs) and dh/dtheta_o (->w_obs);
-    minimiser is a box corner. 4 barrier evals.
-    """
-    g = _part(xr, xo, kappa, False, [('o',2),('o',3)])   # dh/dtheta_o, dh/dv_o
-    dh_dtho, dh_dvo = g[('o',2)], g[('o',3)]
-    a = -aobs_max*np.sign(dh_dvo)  if abs(dh_dvo)  > 1e-12 else 0.0
-    w = -wobs_max*np.sign(dh_dtho) if abs(dh_dtho) > 1e-12 else 0.0
+    g = _part(
+        xr, xo, kappa, False,
+        [('o', 2), ('o', 3)],
+    )
+    dh_dtho = g[('o', 2)]
+    dh_dvo = g[('o', 3)]
+
+    # Move in the direction that decreases h as rapidly as possible.
+    a = (
+        -aobs_max * np.sign(dh_dvo)
+        if abs(dh_dvo) > 1e-12
+        else 0.0
+    )
+    w = (
+        -wobs_max * np.sign(dh_dtho)
+        if abs(dh_dtho) > 1e-12
+        else 0.0
+    )
     return np.array([a, w])
