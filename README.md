@@ -1,5 +1,5 @@
 <div align='center'>
-<h2 align="center"> AR-DPCBF: Adversarial-Robust Dynamic Parabolic Control Barrier Functions for Nonholonomic Robots Against Maneuvering Obstacles</h2>
+<h2 align="center"> Adversarially Robust Geometric Safety Certificates for Nonholonomic Robots Against Maneuvering  Obstacles</h2>
 
 **Safe navigation for nonholonomic robots against *maneuvering* obstacles.**
 
