@@ -194,24 +194,13 @@ mapping.
 
 ```bibtex
 @article{ardpcbf2026,
-  title   = {Adversarial-Robust Dynamic Parabolic Control Barrier Functions for
-             Nonholonomic Robots Against Maneuvering Obstacles},
+  title   = {Adversarially Robust Geometric Safety Certificates for Nonholonomic Robots Against Maneuvering  Obstacles},
   author  = {<authors>},
   journal = {<venue>},
   year    = {2026}
 }
 ```
 
-Built on the DPCBF framework:
-
-```bibtex
-@inproceedings{park2026dpcbf,
-  title     = {Beyond Collision Cones: Dynamic Obstacle Avoidance for Nonholonomic
-               Robots via Dynamic Parabolic Control Barrier Functions},
-  author    = {Park, H. K. and Kim, T. and Panagou, D.},
-  booktitle = {IEEE Int. Conf. on Robotics and Automation (ICRA)},
-  year      = {2026}
-}
 ```
 
 ## License
